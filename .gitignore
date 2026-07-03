@@ -1,0 +1,31 @@
+# Build
+build/
+.gradle/
+out/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Kotlin
+.kotlin/
+
+# MiMoCode
+.mimocode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Runtime
+chat.db
+chat.log
+received/
+
+# Config (содержит адрес)
+config.yaml
+
+# Debug
+build_error.txt
