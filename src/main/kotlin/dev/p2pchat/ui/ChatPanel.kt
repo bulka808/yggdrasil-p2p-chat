@@ -105,6 +105,12 @@ fun ChatPanel(
                 MessageBubble(message, ownAddress)
             }
         }
+
+        LaunchedEffect(messages.size) {
+            if (messages.isNotEmpty()) {
+                listState.animateScrollToItem(messages.size - 1)
+            }
+        }
         
         if (pendingFiles.isNotEmpty()) {
             Row(
@@ -131,7 +137,20 @@ fun ChatPanel(
         }
         
         Row(modifier = Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            OutlinedTextField(value = inputText, onValueChange = { inputText = it }, modifier = Modifier.weight(1f), placeholder = { Text("Введите сообщение...") })
+            OutlinedTextField(
+                value = inputText,
+                onValueChange = { inputText = it },
+                modifier = Modifier
+                    .weight(1f)
+                    .onPreviewKeyEvent { event ->
+                        if (event.type == KeyEventType.KeyDown && event.key == Key.Enter && !event.isShiftPressed) {
+                            if (pendingFiles.isNotEmpty()) { onSendFiles(pendingFiles); pendingFiles = emptyList() }
+                            if (inputText.isNotBlank()) { onSendMessage(inputText); inputText = "" }
+                            true
+                        } else false
+                    },
+                placeholder = { Text("Введите сообщение...") }
+            )
             Spacer(modifier = Modifier.width(8.dp))
             Button(onClick = {
                 val chooser = JFileChooser()

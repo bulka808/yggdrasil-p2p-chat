@@ -79,6 +79,7 @@ fun ChatApp() {
                 if (currentPeerId != null) {
                     messages = storage.getMessagesByPeer(currentPeerId!!)
                 }
+                peers = storage.getPeers()
             }
             override fun onPeerConnected(peerId: String) {
                 peers = storage.getPeers()

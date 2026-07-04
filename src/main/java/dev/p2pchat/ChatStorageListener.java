@@ -48,7 +48,7 @@ public class ChatStorageListener implements P2PNodeListener {
 
     @Override
     public void onPeerConnected(String peerId) {
-        storage.savePeer(peerId, peerId);
+        // Имя сохраняется при первом сообщении с displayName
     }
 
     @Override
