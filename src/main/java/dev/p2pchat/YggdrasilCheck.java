@@ -43,15 +43,14 @@ public class YggdrasilCheck {
             socket.getOutputStream()
                     .write("{\"request\":\"getSelf\"}\n".getBytes(StandardCharsets.UTF_8));
 
-            BufferedReader br = new BufferedReader(
-                    new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
-            String response = br.readLine();
+            String response = new String(socket.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            Logger.debug("Yggdrasil response: " + response);
 
             var tree = mapper.readTree(response);
             String address = tree.path("response").path("address").asText("");
             return address.isEmpty() ? null : address;
         } catch (Exception e) {
-            Logger.error("Yggdrasil: " + e.getMessage());
+            Logger.error("Yggdrasil getSelf failed: " + e.getClass().getSimpleName() + ": " + e.getMessage());
             return null;
         }
     }
