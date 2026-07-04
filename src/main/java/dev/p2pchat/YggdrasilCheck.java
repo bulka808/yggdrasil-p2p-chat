@@ -4,40 +4,39 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.net.UnixDomainSocketAddress;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.charset.StandardCharsets;
 
 public class YggdrasilCheck {
 
-    private static final String LINUX_SOCKET = "/var/run/yggdrasil.sock";
     private static final ObjectMapper mapper = new ObjectMapper();
 
     private static boolean isLinux() {
         return System.getProperty("os.name", "").toLowerCase().contains("linux");
     }
 
-    private static Socket connectSocket(String host, int port) throws IOException {
-        Socket socket = new Socket();
-        if (isLinux() && Files.exists(Path.of(LINUX_SOCKET))) {
-            socket.connect(UnixDomainSocketAddress.of(LINUX_SOCKET));
-        } else {
-            socket.connect(new InetSocketAddress(host, port), 3000);
-        }
-        return socket;
-    }
-
     public static boolean isRunning(String host, int port) {
-        try (Socket socket = connectSocket(host, port)) {
+        try (Socket socket = new Socket()) {
+            socket.connect(new InetSocketAddress(host, port), 3000);
             return true;
         } catch (IOException e) {
+            if (isLinux()) {
+                try {
+                    ProcessBuilder pb = new ProcessBuilder("yggdrasilctl", "-json", "getself");
+                    pb.redirectErrorStream(true);
+                    Process process = pb.start();
+                    String response = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+                    return response.contains("\"address\"");
+                } catch (Exception ex) {
+                    return false;
+                }
+            }
             return false;
         }
     }
 
     public static String getSelf(String host, int port) {
-        try (Socket socket = connectSocket(host, port)) {
+        try (Socket socket = new Socket()) {
+            socket.connect(new InetSocketAddress(host, port), 3000);
             socket.setSoTimeout(5000);
 
             socket.getOutputStream()
@@ -50,7 +49,27 @@ public class YggdrasilCheck {
             String address = tree.path("response").path("address").asText("");
             return address.isEmpty() ? null : address;
         } catch (Exception e) {
+            if (isLinux()) {
+                return getSelfViaCtl();
+            }
             Logger.error("Yggdrasil getSelf failed: " + e.getClass().getSimpleName() + ": " + e.getMessage());
+            return null;
+        }
+    }
+
+    private static String getSelfViaCtl() {
+        try {
+            ProcessBuilder pb = new ProcessBuilder("yggdrasilctl", "-json", "getself");
+            pb.redirectErrorStream(true);
+            Process process = pb.start();
+            String response = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            Logger.debug("Yggdrasil ctl response: " + response);
+
+            var tree = mapper.readTree(response);
+            String address = tree.path("response").path("address").asText("");
+            return address.isEmpty() ? null : address;
+        } catch (Exception e) {
+            Logger.error("yggdrasilctl failed: " + e.getMessage());
             return null;
         }
     }
