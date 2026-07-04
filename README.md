@@ -12,19 +12,25 @@
 ## Требования
 
 - **Java 21** или новее
-- **[Yggdrasil](https://github.com/yggdrasil-network/yggdrasil-go)** — запущен на обоих устройствах
+- **[Yggdrasil](https://github.com/yggdrasil-network/yggdrasil-go)** — запущен на обоих устройствах, и настроены пиры. Добавить их в конфиг можно по пути ```C:\ProgramData\Yggdrasil\yggdrasil.conf``` или ```/etc/yggdrasil.conf``` для linux. В раздел peers нужно вставить [публичные пиры](https://publicpeers.neilalexander.dev/).
 
 ## Установка
 
 **Windows:** скачайте готовый `.exe` из [Releases](https://github.com/bulka808/yggdrasil-p2p-chat/releases).
 
-**Linux / macOS / сборка из исходников:**
+**Cборка из исходников:**
 
 ```bash
-./gradlew build
+./gradlew run
 ```
 
-**JAR:** `build/libs/yggdrasil-p2p-chat-1.0-SNAPSHOT.jar`
+Для сборки JAR с зависимостями:
+
+```bash
+./gradlew packageUberJarForCurrentOS
+```
+
+JAR: `build/compose/jars/yggdrasil-p2p-chat-{os}-{arch}-1.0-SNAPSHOT.jar`
 
 Сборка нативного установщика через `jpackage` (опционально):
 
@@ -32,12 +38,23 @@
 ./gradlew jpackageApp
 ```
 
+Установщик: `build/jpackage/P2PChat/`
+
 ## Запуск
 
 1. Запустите Yggdrasil на обоих устройствах.
 2. Запустите приложение:
    ```bash
-   java -jar build/libs/yggdrasil-p2p-chat-1.0-SNAPSHOT.jar
+   ./gradlew run
+   ```
+   Или через JAR:
+   ```bash
+   java -jar build/compose/jars/yggdrasil-p2p-chat-{os}-{arch}-1.0-SNAPSHOT.jar
+   ```
+   Или через нативный установщик:
+   ```bash
+   ./gradlew jpackageApp
+   build/jpackage/P2PChat/bin/P2PChat
    ```
 3. При первом запуске адрес определяется автоматически из Yggdrasil API.
 4. Добавьте пира по его Yggdrasil IPv6-адресу.
@@ -82,6 +99,9 @@ debug_logging: false
 Yggdrasil сам по себе обеспечивает end-to-end шифрование всего трафика в сети (XSalsa20-Poly1305 / Curve25519), промежуточные узлы не могут прочитать содержимое. Самоподписанные сертификаты используются как техническая заглушка — QUIC требует TLS-рукопожатие на уровне соединения, а реальная защита обеспечивается сетью Yggdrasil.
 
 IPv6-адрес в Yggdrasil криптографически привязан к публичному ключу узла, что делает невозможной подмену адреса отправителя.
+
+## Поддержка Linux и macOS
+Приложение не тестировалось на этих платформах, могут быть проблемы.
 
 ## Roadmap
 
