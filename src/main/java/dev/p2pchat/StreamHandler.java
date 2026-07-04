@@ -44,9 +44,13 @@ public class StreamHandler {
     }
 
     public void handle(QuicStream stream, String peerId) {
+        Logger.debug("StreamHandler.handle() called for peer=" + peerId);
         try (InputStream in = stream.getInputStream(); OutputStream out = stream.getOutputStream()) {
-            Logger.debug("StreamHandler.handle() called for peer=" + peerId);
             byte[] raw = in.readAllBytes();
+            if (raw == null || raw.length == 0) {
+                Logger.debug("StreamHandler: no data from " + peerId + ", closing");
+                return;
+            }
             Logger.debug("StreamHandler: read " + raw.length + " bytes from " + peerId);
             RawMessage rawMsg = unpack(raw);
 

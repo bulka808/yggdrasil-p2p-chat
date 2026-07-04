@@ -38,7 +38,7 @@ public class P2PNode implements AutoCloseable {
 
     private final List<P2PNodeListener> listeners = new CopyOnWriteArrayList<>();
 
-    private final static Duration MAX_IDLE_TIMEOUT = Duration.ofSeconds(30);
+    private final static Duration MAX_IDLE_TIMEOUT = Duration.ofMinutes(5);
     private final static String PROTOCOL_NAME = "my-protocol";
     private static final int MAX_RECONNECT_ATTEMPTS = 5;
     private static final int[] RECONNECT_DELAYS = {5, 10, 20, 30, 60};
@@ -162,7 +162,11 @@ public class P2PNode implements AutoCloseable {
                 .build();
         conn.setPeerInitiatedStreamCallback(stream -> {
             Logger.debug("Peer-initiated stream callback fired for " + peerId);
-            executor.submit(() -> handler.handle(stream, peerId));
+            try {
+                handler.handle(stream, peerId);
+            } catch (Exception e) {
+                Logger.error("Stream handling failed: " + e.getClass().getSimpleName() + ": " + e.getMessage());
+            }
         });
         conn.setConnectionListener(connectionTerminatedEvent -> {
             connections.remove(peerId, conn);
@@ -275,23 +279,19 @@ public class P2PNode implements AutoCloseable {
             return new ApplicationProtocolConnection() {
                 @Override
                 public void acceptPeerInitiatedStream(QuicStream stream) {
-                    Logger.debug("Accepted peer-initiated stream from " + peerId);
-                    executor.submit(() -> handler.handle(stream, peerId));
+                    Logger.debug("Accepted stream: " + stream.getStreamId());
+                    try {
+                        handler.handle(stream, peerId);
+                    } catch (Exception e) {
+                        Logger.error("Handle failed: " + e.getClass().getSimpleName() + ": " + e.getMessage());
+                    }
                 }
             };
         }
     }
 
     private void addConnection(String peerId, QuicConnection connection) {
-        QuicConnection old = connections.put(peerId, connection);
-        if (old != null && old != connection) {
-            executor.submit(() -> {
-                try {
-                    old.close();
-                } catch (Exception ignored) {
-                }
-            });
-        }
+        connections.put(peerId, connection);
     }
 
     private void scheduleReconnection(String peerId) {
