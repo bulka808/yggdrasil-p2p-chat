@@ -3,13 +3,31 @@ package dev.p2pchat;
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.UnixDomainSocketAddress;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.charset.StandardCharsets;
 
 public class YggdrasilCheck {
 
-    public static boolean isRunning(String host, int port) {
-        try (Socket socket = new Socket()) {
+    private static final String LINUX_SOCKET = "/var/run/yggdrasil.sock";
+
+    private static boolean isLinux() {
+        return System.getProperty("os.name", "").toLowerCase().contains("linux");
+    }
+
+    private static Socket connectSocket(String host, int port) throws IOException {
+        Socket socket = new Socket();
+        if (isLinux() && Files.exists(Path.of(LINUX_SOCKET))) {
+            socket.connect(UnixDomainSocketAddress.of(LINUX_SOCKET));
+        } else {
             socket.connect(new InetSocketAddress(host, port), 3000);
+        }
+        return socket;
+    }
+
+    public static boolean isRunning(String host, int port) {
+        try (Socket socket = connectSocket(host, port)) {
             return true;
         } catch (IOException e) {
             return false;
@@ -17,8 +35,7 @@ public class YggdrasilCheck {
     }
 
     public static String getSelf(String host, int port) {
-        try (Socket socket = new Socket()) {
-            socket.connect(new InetSocketAddress(host, port), 3000);
+        try (Socket socket = connectSocket(host, port)) {
             socket.setSoTimeout(5000);
 
             OutputStream out = socket.getOutputStream();
@@ -38,7 +55,7 @@ public class YggdrasilCheck {
 
             return parseAddress(sb.toString());
         } catch (Exception e) {
-            System.out.println("Ошибка получения адреса Yggdrasil: " + e.getMessage());
+            Logger.error("Ошибка получения адреса Yggdrasil: " + e.getMessage());
             return null;
         }
     }
@@ -59,15 +76,15 @@ public class YggdrasilCheck {
 
     public static boolean check(String host, int port) {
         if (!isRunning(host, port)) {
-            System.out.println("Yggdrasil не найден на " + host + ":" + port);
+            Logger.error("Yggdrasil не найден на " + host + ":" + port);
             return false;
         }
         String address = getSelf(host, port);
         if (address == null) {
-            System.out.println("Yggdrasil работает, но не удалось получить адрес");
+            Logger.error("Yggdrasil работает, но не удалось получить адрес");
             return false;
         }
-        System.out.println("Yggdrasil работает: " + host + ":" + port + ", адрес: " + address);
+        Logger.info("Yggdrasil работает: " + host + ":" + port + ", адрес: " + address);
         return true;
     }
 }
