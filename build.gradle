@@ -20,6 +20,10 @@ compose.desktop {
     }
 }
 
+tasks.withType(JavaExec).configureEach {
+    jvmArgs '-Djava.awt.wm.nonreparenting=true'
+}
+
 kotlin {
     jvmToolchain(21)
 }
